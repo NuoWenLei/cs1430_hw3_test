@@ -261,7 +261,9 @@ def estimate_fundamental_matrix(points1, points2):
     :return F_matrix, the [3 x 3] fundamental matrix
             residual, the error in the estimation
     """
-    (norm_points1, T1), (norm_points2, T2) = normalize_coordinates(points1), normalize_coordinates(points2)
+    # (norm_points1, T1), (norm_points2, T2) = normalize_coordinates(points1), normalize_coordinates(points2)
+    norm_points1 = points1
+    norm_points2 = points2
 
     A = []
     for (u, v), (u_prime, v_prime) in zip(norm_points1, norm_points2):
@@ -281,7 +283,7 @@ def estimate_fundamental_matrix(points1, points2):
     S[-1] = 0
     F_matrix = U @ np.diagflat(S) @ Vh
 
-    F_matrix = T2.T @ F_matrix @ T1
+    # F_matrix = T2.T @ F_matrix @ T1
 
     # Compute residual
     residual = 0
