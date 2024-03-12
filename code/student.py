@@ -67,13 +67,14 @@ def calculate_projection_matrix(image, markers):
     return M, residual
 
 
-def normalize_coordinates(Points):
+def normalize_coordinates(points):
     """
+    ============================ EXTRA CREDIT ============================
     Normalize the given Points before computing the fundamental matrix. You
     should perform the normalization to make the mean of the points 0
     and the average magnitude 1.0.
 
-    The transformation matrix T is the product of the scale and offset matrices
+    The transformation matrix T is the product of the scale and offset matrices.
 
     Offset Matrix
     Find c_u and c_v and create a matrix of the form in the handout for T_offset
@@ -83,35 +84,81 @@ def normalize_coordinates(Points):
     their standard deviation i.e. 1 / np.std([...]). Then construct the scale
     matrix in the form provided in the handout for T_scale
 
-    :param Points: set of [n x 2] 2D points
-    :return: a tuple of (normalized_points, T) where T is the transformation
+    :param points: set of [n x 2] 2D points
+    :return: a tuple of (normalized_points, T) where T is the [3 x 3] transformation
     matrix
     """
-    n = Points.shape[0]
-    u = np.copy(Points[:, 0])
-    v = np.copy(Points[:, 1])
+    # Compute mean coordinates and scale
+    cu, cv = np.mean(points, axis=0)
+    s = 1/np.std(points - np.array([cu, cv]))
 
-    # Calculate offset matrix
-    c_u = np.mean(u)
-    c_v = np.mean(v)
+    # Compute transformation matrix
+    T_scale = np.array([
+        [s, 0, 0],
+        [0, s, 0],
+        [0, 0, 1]
+    ])
+    T_offset = np.array([
+        [1, 0, -cu],
+        [0, 1, -cv],
+        [0, 0, 1]
+    ])
+    T = T_scale @ T_offset
 
-    offset_matrix = np.array([[1, 0, -c_u], [0, 1, -c_v], [0, 0, 1]])
+    # Append a column of ones to the points array to make it homogeneous
+    homo_points = np.hstack((points, np.ones((points.shape[0], 1))))
 
-    # Calculate scale matrix
-    s = 1 / np.std([[u - c_u], [v - c_v]])
+    # Apply transformation and extract the 2D points
+    norm_points = (T @ homo_points.T).T[:, :2]
+    
+    return (norm_points, T) 
 
-    scale_matrix = np.array([[s, 0, 0], [0, s, 0], [0, 0, 1]])
 
-    # Calculate transformation matrix
-    T = scale_matrix @ offset_matrix
+# def normalize_coordinates(Points):
+#     """
+#     Normalize the given Points before computing the fundamental matrix. You
+#     should perform the normalization to make the mean of the points 0
+#     and the average magnitude 1.0.
 
-    # Normalize points using transformation matrix
-    for i in range(0, n):
-        norm = T @ np.transpose([u[i], v[i], 1])
-        u[i] = norm[0]
-        v[i] = norm[1]
+#     The transformation matrix T is the product of the scale and offset matrices
 
-    return np.column_stack((u, v)), T
+#     Offset Matrix
+#     Find c_u and c_v and create a matrix of the form in the handout for T_offset
+
+#     Scale Matrix
+#     Subtract the means of the u and v coordinates, then take the reciprocal of
+#     their standard deviation i.e. 1 / np.std([...]). Then construct the scale
+#     matrix in the form provided in the handout for T_scale
+
+#     :param Points: set of [n x 2] 2D points
+#     :return: a tuple of (normalized_points, T) where T is the transformation
+#     matrix
+#     """
+#     n = Points.shape[0]
+#     u = np.copy(Points[:, 0])
+#     v = np.copy(Points[:, 1])
+
+#     # Calculate offset matrix
+#     c_u = np.mean(u)
+#     c_v = np.mean(v)
+
+#     offset_matrix = np.array([[1, 0, -c_u], [0, 1, -c_v], [0, 0, 1]])
+
+#     # Calculate scale matrix
+#     s = 1 / np.std([[u - c_u], [v - c_v]])
+
+#     scale_matrix = np.array([[s, 0, 0], [0, s, 0], [0, 0, 1]])
+
+#     # Calculate transformation matrix
+#     T = scale_matrix @ offset_matrix
+
+#     # Normalize points using transformation matrix
+#     for i in range(0, n):
+#         norm = T @ np.transpose([u[i], v[i], 1])
+#         u[i] = norm[0]
+#         v[i] = norm[1]
+
+#     return np.column_stack((u, v)), T
 
 
 def estimate_fundamental_matrix_unnormalizedpoints(Points1, Points2):
