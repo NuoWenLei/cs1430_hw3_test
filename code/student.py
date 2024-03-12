@@ -238,67 +238,15 @@ def estimate_fundamental_matrix_unnormalizedpoints(Points1, Points2):
     return F_matrix, residual
 
 
-def estimate_fundamental_matrix(points1, points2):
-    """
-    Estimates the fundamental matrix given set of point correspondences in
-    points1 and points2. The fundamental matrix will transform a point into 
-    a line within the second image - the epipolar line - such that F x' = l. 
-    Fitting a fundamental matrix to a set of points will try to minimize the 
-    error of all points x to their respective epipolar lines transformed 
-    from x'. The residual can be computed as the difference from the known 
-    geometric constraint that x^T F x' = 0.
-
-    points1 is an [n x 2] matrix of 2D coordinate of points on Image A
-    points2 is an [n x 2] matrix of 2D coordinate of points on Image B
-
-    Implement this function efficiently as it will be
-    called repeatedly within the RANSAC part of the project.
-
-    If you normalize your coordinates for extra credit, don't forget to adjust
-    your fundamental matrix so that it can operate on the original pixel
-    coordinates!
-
-    :return F_matrix, the [3 x 3] fundamental matrix
-            residual, the error in the estimation
-    """
-    # (norm_points1, T1), (norm_points2, T2) = normalize_coordinates(points1), normalize_coordinates(points2)
-    norm_points1 = points1
-    norm_points2 = points2
-
-    A = []
-    for (u, v), (u_prime, v_prime) in zip(norm_points1, norm_points2):
-        A.append([
-            u*u_prime, u*v_prime, u, v*u_prime, v*v_prime, v, u_prime, v_prime, 1
-        ])
-    A = np.array(A)
-
-    # This is taken from slide 44 of E09 lecture
-    # Use SVD on A to get fundamental matrix
-    U, S, Vh = np.linalg.svd(A)
-    F = Vh[-1,:]
-    F = np.reshape(F, (3,3))
-
-    # Ensure fundamental matrix has rank 2
-    U, S, Vh = np.linalg.svd(F)
-    S[-1] = 0
-    F_matrix = U @ np.diagflat(S) @ Vh
-
-    # F_matrix = T2.T @ F_matrix @ T1
-
-    # Compute residual
-    residual = 0
-    for (point1, point2) in zip(norm_points1, norm_points2):
-        residual += np.abs(np.dot(np.dot(np.transpose(np.append(point1, 1)), F_matrix), np.append(point2, 1)))
-    return F_matrix, residual
-
-# def estimate_fundamental_matrix(Points1, Points2):
+# def estimate_fundamental_matrix(points1, points2):
 #     """
 #     Estimates the fundamental matrix given set of point correspondences in
-#     points1 and points2. The fundamental matrix will constrain a point to lie
-#     along a line within the second image - the epipolar line. Fitting a
-#     fundamental matrix to a set of points will try to minimize the error of
-#     all points to their respective epipolar lines. The residual can be computed 
-#     as the difference from the known geometric constraint that x^T F x' = 0.
+#     points1 and points2. The fundamental matrix will transform a point into 
+#     a line within the second image - the epipolar line - such that F x' = l. 
+#     Fitting a fundamental matrix to a set of points will try to minimize the 
+#     error of all points x to their respective epipolar lines transformed 
+#     from x'. The residual can be computed as the difference from the known 
+#     geometric constraint that x^T F x' = 0.
 
 #     points1 is an [n x 2] matrix of 2D coordinate of points on Image A
 #     points2 is an [n x 2] matrix of 2D coordinate of points on Image B
@@ -311,64 +259,125 @@ def estimate_fundamental_matrix(points1, points2):
 #     coordinates!
 
 #     :return F_matrix, the [3 x 3] fundamental matrix
-#             residual, the sum of the squared Euclidean error in the estimation
+#             residual, the error in the estimation
 #     """
-#     # Alternate solution
-#     n = Points2.shape[0]
+#     # (norm_points1, T1), (norm_points2, T2) = normalize_coordinates(points1), normalize_coordinates(points2)
+#     norm_points1 = points1
+#     norm_points2 = points2
 
-#     Points1_norm, T1 = normalize_coordinates(Points1)
-#     Points2_norm, T2 = normalize_coordinates(Points2)
+#     A = []
+#     for (u, v), (u_prime, v_prime) in zip(norm_points1, norm_points2):
+#         A.append([
+#             u*u_prime, u*v_prime, u, v*u_prime, v*v_prime, v, u_prime, v_prime, 1
+#         ])
 
-#     u = np.copy(Points1_norm[:, 0])
-#     v = np.copy(Points1_norm[:, 1])
-#     u_prime = np.copy(Points2_norm[:, 0])
-#     v_prime = np.copy(Points2_norm[:, 1])
+#     A = np.array(A)
 
-#     # Create data matrix
-#     data_matrix = np.array([
-#         u_prime * u, u_prime * v, u_prime, v_prime * u, v_prime * v, v_prime,
-#         u, v,
-#         np.ones((n))
-#     ])
-#     data_matrix = np.transpose(data_matrix)
+#     # This is taken from slide 44 of E09 lecture
+#     # Use SVD on A to get fundamental matrix
+#     U, S, Vh = np.linalg.svd(A)
+#     F = Vh[-1,:]
+#     F = np.reshape(F, (3,3))
 
-#     # Get system matrix using svd
-#     U, S, Vh = np.linalg.svd(data_matrix)
-
-#     # Get column of V coresp to the smallest singular value for full rank F
-#     # Note: np.linalg.svd returns the transpose of V (Vh), so we take the last
-#     # row instead of the last column Vh is sorted in descending order of the
-#     # size of the eigenvalues
-#     full_F = Vh[-1, :]
-
-#     # Reshape column to 3x3 so we have the right dimension for F
-#     full_F = np.reshape(full_F, (3, 3))
-
-#     # Reduce rank to get final F
-#     # Note: np.linalg.svd returns the transpose of V (Vh), so we don't have to
-#     # transpose it here for the matrix multiplication to produce F_matrix
-#     U, S, Vh = np.linalg.svd(full_F)
-
-#     # S is sorted in descending order of the size of the eigenvalues
-#     # Set the smallest singular value to zero.
+#     # Ensure fundamental matrix has rank 2
+#     U, S, Vh = np.linalg.svd(F)
 #     S[-1] = 0
-#     F_matrix_norm = U @ np.diagflat(S) @ Vh
+#     F_matrix = U @ np.diagflat(S) @ Vh
 
-#     # Calculate the residual as the euclidean norm (sum of squared error among all reprojections)
-#     residual = np.sum(np.square(data_matrix @ F_matrix_norm.flatten()))
+#     # F_matrix = T2.T @ F_matrix @ T1
 
-#     # Adjust back to original coordinates
-#     F_matrix = np.transpose(T2) @ F_matrix_norm @ T1
-
-#     # RESIDUAL CAN ALSO BE CALCULATED AS FOLLOWS:
-#     # dist = np.zeros((n))
-#     # for j in range(0, n):
-#     #     homMatch1 = np.append(Points1[j, :], [1])
-#     #     homMatch2 = np.append(Points2[j, :], [1])
-#     #     dist[j] = np.abs(homMatch2 @ F_matrix @ np.transpose(homMatch1))
-#     # residual = np.sum(np.square(dist))
-
+#     # Compute residual
+#     residual = 0
+#     for (point1, point2) in zip(norm_points1, norm_points2):
+#         residual += np.abs(np.dot(np.dot(np.transpose(np.append(point1, 1)), F_matrix), np.append(point2, 1)))
 #     return F_matrix, residual
+
+def estimate_fundamental_matrix(Points1, Points2):
+    """
+    Estimates the fundamental matrix given set of point correspondences in
+    points1 and points2. The fundamental matrix will constrain a point to lie
+    along a line within the second image - the epipolar line. Fitting a
+    fundamental matrix to a set of points will try to minimize the error of
+    all points to their respective epipolar lines. The residual can be computed 
+    as the difference from the known geometric constraint that x^T F x' = 0.
+
+    points1 is an [n x 2] matrix of 2D coordinate of points on Image A
+    points2 is an [n x 2] matrix of 2D coordinate of points on Image B
+
+    Implement this function efficiently as it will be
+    called repeatedly within the RANSAC part of the project.
+
+    If you normalize your coordinates for extra credit, don't forget to adjust
+    your fundamental matrix so that it can operate on the original pixel
+    coordinates!
+
+    :return F_matrix, the [3 x 3] fundamental matrix
+            residual, the sum of the squared Euclidean error in the estimation
+    """
+    # Alternate solution
+    n = Points2.shape[0]
+
+    Points1_norm, T1 = normalize_coordinates(Points1)
+    Points2_norm, T2 = normalize_coordinates(Points2)
+
+    u = np.copy(Points1_norm[:, 0])
+    v = np.copy(Points1_norm[:, 1])
+    u_prime = np.copy(Points2_norm[:, 0])
+    v_prime = np.copy(Points2_norm[:, 1])
+
+    A = []
+    for (u, v), (u_prime, v_prime) in zip(Points1_norm, Points2_norm):
+        A.append([
+            u*u_prime, u*v_prime, u, v*u_prime, v*v_prime, v, u_prime, v_prime, 1
+        ])
+
+    data_matrix = np.array(A)
+
+    # # Create data matrix
+    # data_matrix = np.array([
+    #     u_prime * u, u_prime * v, u_prime, v_prime * u, v_prime * v, v_prime,
+    #     u, v,
+    #     np.ones((n))
+    # ])
+    # data_matrix = np.transpose(data_matrix)
+
+    # Get system matrix using svd
+    U, S, Vh = np.linalg.svd(data_matrix)
+
+    # Get column of V coresp to the smallest singular value for full rank F
+    # Note: np.linalg.svd returns the transpose of V (Vh), so we take the last
+    # row instead of the last column Vh is sorted in descending order of the
+    # size of the eigenvalues
+    full_F = Vh[-1, :]
+
+    # Reshape column to 3x3 so we have the right dimension for F
+    full_F = np.reshape(full_F, (3, 3))
+
+    # Reduce rank to get final F
+    # Note: np.linalg.svd returns the transpose of V (Vh), so we don't have to
+    # transpose it here for the matrix multiplication to produce F_matrix
+    U, S, Vh = np.linalg.svd(full_F)
+
+    # S is sorted in descending order of the size of the eigenvalues
+    # Set the smallest singular value to zero.
+    S[-1] = 0
+    F_matrix_norm = U @ np.diagflat(S) @ Vh
+
+    # Calculate the residual as the euclidean norm (sum of squared error among all reprojections)
+    residual = np.sum(np.square(data_matrix @ F_matrix_norm.flatten()))
+
+    # Adjust back to original coordinates
+    F_matrix = np.transpose(T2) @ F_matrix_norm @ T1
+
+    # RESIDUAL CAN ALSO BE CALCULATED AS FOLLOWS:
+    # dist = np.zeros((n))
+    # for j in range(0, n):
+    #     homMatch1 = np.append(Points1[j, :], [1])
+    #     homMatch2 = np.append(Points2[j, :], [1])
+    #     dist[j] = np.abs(homMatch2 @ F_matrix @ np.transpose(homMatch1))
+    # residual = np.sum(np.square(dist))
+
+    return F_matrix, residual
 
 def estimate_fundamental_matrix_2(Points1, Points2):
     """
